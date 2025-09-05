@@ -24,7 +24,7 @@ async function sortAllTabs() {
     try {
         const tabs = await chrome.tabs.query({});
         const sortedTabs = sortTabsByDomainThenTitle([...tabs]);
-
+        console.log('Sorted tabs:', sortedTabs.map(tab => [getSortableDomain(tab.url), tab.title]));
         for (let i = 0; i < sortedTabs.length; i++) {
             await chrome.tabs.move(sortedTabs[i].id, { index: i });
         }
