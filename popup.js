@@ -2,15 +2,33 @@ document.getElementById('sortAll').addEventListener('click', sortAllTabs);
 document.getElementById('sortWindow').addEventListener('click', sortThisWindow);
 document.getElementById('extractDomain').addEventListener('click', extractThisDomain);
 
+function getSortableDomain(url) {
+    try {
+        return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+        return '';
+    }
+}
+
+function sortTabsByDomainThenTitle(tabs) {
+    return tabs.sort((a, b) => {
+        const domainA = getSortableDomain(a.url);
+        const domainB = getSortableDomain(b.url);
+        const domainCompare = domainA.localeCompare(domainB);
+        if (domainCompare !== 0) return domainCompare;
+        return a.title.localeCompare(b.title);
+    });
+}
+
 async function sortAllTabs() {
     try {
         const tabs = await chrome.tabs.query({});
-        const sortedTabs = tabs.sort((a, b) => a.title.localeCompare(b.title));
+        const sortedTabs = sortTabsByDomainThenTitle([...tabs]);
 
         for (let i = 0; i < sortedTabs.length; i++) {
             await chrome.tabs.move(sortedTabs[i].id, { index: i });
         }
-        console.log('All tabs sorted alphabetically');
+        console.log('All tabs sorted by domain then title');
     } catch (error) {
         console.error('Error sorting all tabs:', error);
     }
@@ -20,12 +38,12 @@ async function sortThisWindow() {
     try {
         const currentWindow = await chrome.windows.getCurrent();
         const tabs = await chrome.tabs.query({ windowId: currentWindow.id });
-        const sortedTabs = tabs.sort((a, b) => a.title.localeCompare(b.title));
+        const sortedTabs = sortTabsByDomainThenTitle([...tabs]);
 
         for (let i = 0; i < sortedTabs.length; i++) {
             await chrome.tabs.move(sortedTabs[i].id, { index: i });
         }
-        console.log('Current window tabs sorted alphabetically');
+        console.log('Current window tabs sorted by domain then title');
     } catch (error) {
         console.error('Error sorting window tabs:', error);
     }
@@ -50,7 +68,7 @@ async function extractThisDomain() {
 
             // Sort the tabs in the new window
             const newWindowTabs = await chrome.tabs.query({ windowId: newWindow.id });
-            const sortedTabs = newWindowTabs.sort((a, b) => a.title.localeCompare(b.title));
+            const sortedTabs = sortTabsByDomainThenTitle([...newWindowTabs]);
 
             for (let i = 0; i < sortedTabs.length; i++) {
                 await chrome.tabs.move(sortedTabs[i].id, { index: i });
